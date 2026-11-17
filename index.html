@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#172554">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pomodoro">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>Mi Pomodoro</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#131f33;--line:#293851;--txt:#f3f6fc;--muted:#aab7ca;--accent:#e65b50;--green:#38a889}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#142342,#090f1c 65%);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100svh;padding:env(safe-area-inset-top) 18px env(safe-area-inset-bottom)}
+main{max-width:480px;margin:auto;padding:24px 0 30px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.eyebrow{font-size:11px;letter-spacing:.14em;color:var(--muted)}h1{font-size:25px;margin:5px 0}.tomato{font-size:30px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:18px 0}.tab,button{border:1px solid var(--line);border-radius:14px;padding:13px;background:var(--panel);color:var(--txt);font-weight:650;font-size:15px}.tab.active{background:var(--accent);border-color:var(--accent)}
+.timer-card,.settings,.stats{background:rgba(19,31,51,.94);border:1px solid var(--line);border-radius:22px;padding:22px;margin-bottom:14px}
+.mode{text-align:center;color:var(--muted);font-size:12px;letter-spacing:.16em;font-weight:700}.clock{text-align:center;font-size:clamp(64px,18vw,88px);font-weight:750;letter-spacing:-.06em;font-variant-numeric:tabular-nums;margin:14px 0}
+.track{height:8px;border-radius:9px;background:#293851;overflow:hidden}.fill{height:100%;width:100%;background:var(--accent);transition:width .2s linear}
+.status{text-align:center;color:var(--muted);font-size:13px;margin:14px 0 18px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.primary{background:var(--accent);border-color:var(--accent)}.wide{width:100%;margin-top:10px}
+h2{font-size:16px;margin:0 0 16px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{display:block;color:var(--muted);font-size:12px}input{display:block;width:100%;margin-top:7px;border:1px solid var(--line);border-radius:12px;background:#0b1628;color:var(--txt);padding:12px;font-size:18px;text-align:center}
+.hint{color:var(--muted);font-size:11px;line-height:1.5;margin:12px 0 0}.statrow{display:flex;justify-content:space-between;align-items:center}.count{font-size:32px;font-weight:750}.note{text-align:center;color:var(--muted);font-size:12px;line-height:1.5;margin:16px 4px}
+button:focus-visible,input:focus-visible{outline:2px solid #fff;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+ <header class="top"><div><div class="eyebrow">TU ESPACIO DE PRODUCTIVIDAD</div><h1>Mi Pomodoro</h1></div><div class="tomato">🍅</div></header>
+ <div class="tabs"><button class="tab active" id="workTab">💻 Trabajo</button><button class="tab" id="restTab">☕ Descanso</button></div>
+ <section class="timer-card">
+  <div class="mode" id="modeLabel">TIEMPO DE TRABAJO</div>
+  <div class="clock" id="clock" aria-live="off">25:00</div>
+  <div class="track"><div class="fill" id="progress"></div></div>
+  <div class="status" id="status" aria-live="polite">Listo para comenzar</div>
+  <div class="actions"><button class="primary" id="start">▶ Iniciar</button><button id="reset">↺ Reiniciar</button></div>
+  <button class="wide" id="switch">Siguiente etapa →</button>
+ </section>
+ <section class="settings">
+  <h2>⚙️ Configurar tiempos</h2>
+  <div class="fields">
+   <label>Trabajo (minutos)<input id="workInput" type="number" min="1" max="240" value="25" inputmode="numeric"></label>
+   <label>Descanso (minutos)<input id="restInput" type="number" min="1" max="120" value="5" inputmode="numeric"></label>
+  </div>
+  <button class="wide" id="save">Guardar tiempos</button>
+  <p class="hint">Puedes configurar trabajo de 1 a 240 minutos y descanso de 1 a 120 minutos.</p>
+ </section>
+ <section class="stats"><div class="statrow"><div><strong>Sesiones completadas</strong><div class="hint">Ciclos de trabajo terminados</div></div><div class="count" id="sessions">0</div></div></section>
+ <p class="note" id="message">Concéntrate en una sola tarea. ¡Tú puedes!</p>
+ <p class="note">La app funciona sin conexión después de abrirla e instalarla al menos una vez. En iPhone, iOS puede suspender una web app en segundo plano; al volver a abrirla, el tiempo se actualizará, pero no se garantiza una alarma exacta si la app está cerrada o el teléfono está bloqueado.</p>
+</main>
+<script>
+(()=>{
+ const $=id=>document.getElementById(id);
+ let cfg={work:25,rest:5},mode='work',remaining=1500,total=1500,running=false,deadline=0,loop=null,sessions=0;
+ try{const saved=JSON.parse(localStorage.getItem('pomo-settings')||'{}');if(saved.work>=1&&saved.work<=240)cfg.work=saved.work;if(saved.rest>=1&&saved.rest<=120)cfg.rest=saved.rest;sessions=Number(localStorage.getItem('pomo-sessions')||0)}catch(e){}
+ $('workInput').value=cfg.work;$('restInput').value=cfg.rest;$('sessions').textContent=sessions;remaining=total=cfg.work*60;
+ const fmt=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
+ function render(){
+  $('clock').textContent=fmt(remaining);$('modeLabel').textContent=mode==='work'?'TIEMPO DE TRABAJO':'TIEMPO DE DESCANSO';
+  $('progress').style.width=(total?remaining/total*100:0)+'%';$('progress').style.background=mode==='work'?'var(--accent)':'var(--green)';
+  $('workTab').classList.toggle('active',mode==='work');$('restTab').classList.toggle('active',mode==='rest');
+  $('start').textContent=running?'Ⅱ Pausar':(remaining===total?'▶ Iniciar':'▶ Continuar');
+  if(running)$('status').textContent='Temporizador en marcha';else if(remaining===total)$('status').textContent='Listo para comenzar';else $('status').textContent='Temporizador pausado';
+ }
+ function stop(){running=false;if(loop)clearInterval(loop);loop=null}
+ function tick(){
+  remaining=Math.max(0,Math.ceil((deadline-Date.now())/1000));
+  if(remaining===0){stop();if(mode==='work'){sessions++;localStorage.setItem('pomo-sessions',sessions);$('message').textContent='¡Excelente trabajo! Tómate un descanso. 🎉';}else $('message').textContent='¡Descanso terminado! Vamos por otra sesión. 💪';render();try{if(navigator.vibrate)navigator.vibrate([200,100,200])}catch(e){}return}
+  render();
+ }
+ function begin(){if(running)return;if(remaining<=0)remaining=total;running=true;deadline=Date.now()+remaining*1000;loop=setInterval(tick,250);render()}
+ function change(next){stop();mode=next;total=(mode==='work'?cfg.work:cfg.rest)*60;remaining=total;$('message').textContent=mode==='work'?'Enfócate en tu siguiente tarea.':'Desconéctate un momento y relájate.';render()}
+ $('start').onclick=()=>{if(running){tick();if(running)stop()}else begin();render()};
+ $('reset').onclick=()=>{stop();remaining=total;$('message').textContent='Temporizador reiniciado.';render()};
+ $('switch').onclick=()=>change(mode==='work'?'rest':'work');
+ $('workTab').onclick=()=>change('work');$('restTab').onclick=()=>change('rest');
+ $('save').onclick=()=>{const w=Number($('workInput').value),r=Number($('restInput').value);if(!Number.isInteger(w)||w<1||w>240||!Number.isInteger(r)||r<1||r>120){$('message').textContent='Revisa los minutos: trabajo 1–240 y descanso 1–120.';return}cfg={work:w,rest:r};localStorage.setItem('pomo-settings',JSON.stringify(cfg));stop();total=(mode==='work'?cfg.work:cfg.rest)*60;remaining=total;$('message').textContent='¡Tiempos guardados!';render()};
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&running)tick()});
+ render();
+})();
+</script>
+<script>
+if('serviceWorker' in navigator && location.protocol==='https:'){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
+</script>
+</body></html>

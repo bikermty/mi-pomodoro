@@ -1,0 +1,24 @@
+MI POMODORO — APP WEB INSTALABLE PARA IPHONE
+
+CONTENIDO
+- index.html: aplicación
+- manifest.webmanifest: configuración de instalación
+- sw.js: caché offline (service worker)
+- icon-192.png e icon-512.png: iconos
+
+IMPORTANTE
+Para instalar como app y habilitar el modo offline, los archivos deben publicarse en un sitio HTTPS.
+No basta con abrir index.html como archivo local.
+
+INSTALACIÓN EN IPHONE
+1. Publica el contenido de esta carpeta en un hosting estático HTTPS (por ejemplo, GitHub Pages o Netlify).
+2. Abre la dirección publicada en Safari en el iPhone.
+3. Espera a que cargue completamente con conexión.
+4. Pulsa Compartir > Añadir a pantalla de inicio > Añadir.
+5. Abre Pomodoro desde el icono una vez con internet. Después podrá cargar sin conexión.
+
+NOTA SOBRE SEGUNDO PLANO
+La app calcula el tiempo usando la hora de fin, por lo que corrige el contador al volver a abrirla.
+iOS puede suspender una PWA cuando está en segundo plano. No se garantiza que el sonido/aviso ocurra puntualmente si la app está cerrada o el iPhone está bloqueado. Para alarmas fiables en segundo plano se necesitaría una app nativa o un servicio de notificaciones compatible.
+
+Los ajustes y el conteo de sesiones se guardan localmente en el dispositivo.
